@@ -1,5 +1,6 @@
 const Downloader = require('./downloader/downloader');
 const VideoSync = require('./video/video_sync');
+const Database = require('./database/db');
 const fs = require('fs');
 
 console.log("=========================================");
@@ -12,6 +13,14 @@ const PlayerEngine = {
     audioMasterClock: 0,
 
     async loadAndVerifyAsset(url, path, expectedHash) {
+        // Step 1: Connect to the Cloud Database
+        try {
+            await Database.initializeTables();
+        } catch (dbErr) {
+            console.log("[Engine Warning] Running in offline standalone mode: Neon DB unreachable.");
+        }
+
+        // Step 2: Handle Media Downloader Execution
         let downloadComplete = await Downloader.downloadFile(url, path, 4);
         
         if (!downloadComplete) {
@@ -21,7 +30,21 @@ const PlayerEngine = {
             downloadComplete = true;
         }
 
-        if (Downloader.verifyIntegrity(path, expectedHash) || expectedHash === "") {
+        const isSafe = Downloader.verifyIntegrity(path, expectedHash);
+
+        // Step 3: Log Asset Integrity Status directly to the Cloud DB
+        try {
+            const logQuery = `
+                INSERT INTO track_downloads (track_name, file_hash, download_status)
+                VALUES ($1, $2, $3);
+            `;
+            await Database.query(logQuery, [path, expectedHash || 'SIMULATED_HASH', isSafe ? 'VERIFIED' : 'BYPASSED']);
+            console.log("[Database] Integrity validation event synced to Neon Dashboard.");
+        } catch (logErr) {
+            // Fails silently if offline or env string missing
+        }
+
+        if (isSafe || expectedHash === "") {
             console.log("[Audio Engine] Pre-playback validation passed.");
             this.audioActive = true;
             this.initVideoPipeline();
@@ -40,12 +63,10 @@ const PlayerEngine = {
         console.log("-----------------------------------------");
         console.log("[Simulating Real-Time A/V Stream Playback]");
         
-        // Pure array structure using basic numbers to guarantee zero syntax drops
         const simulatedFrames = [0, 5, 80]; 
         
         simulatedFrames.forEach((videoTime, index) => {
             this.audioMasterClock = index * 40; 
-            
             console.log(`[Frame #${index + 1}] Master Audio Clock: ${this.audioMasterClock}ms | Video Frame Time: ${videoTime}ms`);
             
             const directive = VideoSync.processFrameTiming(this.audioMasterClock, videoTime);
