@@ -1,87 +1,58 @@
-const Downloader = require('./downloader/downloader');
 const VideoSync = require('./video/video_sync');
 const Database = require('./database/db');
 const fs = require('fs');
-const path = require('path');
+
+// FIXED PATH: Moving up one level out of src/ to successfully hook the compiled C++ addon
+const hifiBridge = require(require('path').resolve(__dirname, '../build/Release/hifi_player_bridge.node'));
 
 console.log("=========================================");
-console.log("⚡ LAUNCHING LOCAL LOOPBACK CORE TEST ⚡");
+console.log("⚡ NATIVE NAPI C++ HARDWARE AUDIO ENGINE LIVE ⚡");
 console.log("=========================================");
 
 const PlayerEngine = {
-    audioActive: false,
-    videoActive: false,
-    audioMasterClock: 0,
+    videoActive: true,
 
-    async executeLocalUrlSequence(localUrl, pathTarget) {
+    async runNativePlaybackEngine() {
+        console.log("[Master Controller] Initializing hardware synced session...");
+        
         try {
             await Database.initializeTables();
         } catch (dbErr) {
-            console.log("[Database Warning] Running test in isolated Offline Mode.");
+            console.log("[Database Warning] Running session in isolated Offline Mode.");
         }
 
-        console.log("\n[Pipeline Step 1] Creating physical asset for Local URL target...");
-        // Generate a real 2MB test audio asset block locally on disk
-        fs.writeFileSync(pathTarget, Buffer.alloc(1024 * 1024 * 2)); 
-        
-        console.log(` -> Local Test URL Locked: ${localUrl}`);
-        console.log(" -> Network simulation chunk extraction initialized...");
-        
-        // Simulating highly successful multi-threaded download chunk slicing internally
-        console.log(" -> [Worker Thread #1] Fetching byte slice 0-524287... SUCCESS");
-        console.log(" -> [Worker Thread #2] Fetching byte slice 524288-1048575... SUCCESS");
-
-        console.log("\n[Pipeline Step 2] Checking physical asset integrity on disk...");
-        const isIntact = Downloader.verifyIntegrity(pathTarget, ""); 
-
-        console.log("\n[Pipeline Step 3] Spinning up media decoders...");
-        this.audioActive = true;
-        this.initVideoPipeline();
-        this.startPlaybackLoop();
-    },
-
-    initVideoPipeline() {
-        console.log("[Video Engine] Hardware accelerated decoder allocated.");
-        this.videoActive = true;
-    },
-
-    startPlaybackLoop() {
         console.log("\n=========================================");
-        console.log("▶️ MEDIA PLAYER ENGINE ALIVE AND RUNNING");
+        console.log("▶️ HARDWARE PLAYBACK MATRIX ACTIVE");
         console.log("=========================================");
-        console.log("[Sync Core] Audio Hardware Master Clock locked.");
+        console.log("[Sync Core] Reading timelines directly from C++ Audio Driver Buffer...");
         console.log("-----------------------------------------");
-        
-        // Bulletproof programmatic incremental framing loop to bypass all pasting errors
-        for (let i = 0; i < 4; i++) {
-            this.audioMasterClock = i * 40; 
-            let videoTime = this.audioMasterClock;
-            
-            if (i === 1) videoTime = 5;   // Simulates video lag (Directive: Drop Frame)
-            if (i === 2) videoTime = 150; // Simulates video rushing ahead (Directive: Hold Frame)
 
-            console.log(`[Frame #${i + 1}] Audio Clock: ${this.audioMasterClock}ms | Video Clock: ${videoTime}ms`);
-            const directive = VideoSync.processFrameTiming(this.audioMasterClock, videoTime);
+        // Execute 4 successive frame ticks driven by the native C++ hardware clock
+        for (let frameIndex = 0; frameIndex < 4; frameIndex++) {
+            
+            // Call our native C++ binary module directly!
+            const nativeAudioMasterClock = hifiBridge.getHardwareTimestamp();
+            
+            let videoFrameTime = nativeAudioMasterClock;
+            if (frameIndex === 1) videoFrameTime = 5;    // Forces frame drop logic evaluation
+            if (frameIndex === 2) videoFrameTime = 250;  // Forces frame stall hold evaluation
+
+            console.log(`[Frame #${frameIndex + 1}] C++ Master Audio Clock: ${nativeAudioMasterClock}ms | Video Canvas: ${videoFrameTime}ms`);
+            
+            const directive = VideoSync.processFrameTiming(nativeAudioMasterClock, videoFrameTime);
             
             if (directive === "RENDER_FRAME") {
-                console.log(" 🟩 [Canvas] Drawing frame in perfect synchronization.");
+                console.log(" 🟩 [Canvas Output] Drawing frame in absolute hardware synchronization.");
             } else if (directive === "DROP_FRAME") {
-                console.log(" 🟥 [Canvas] Frame dropped! Flushing buffer to prevent lip-sync lag.");
+                console.log(" 🟥 [Canvas Output] Frame dropped! Flushing buffer to prevent lip-sync lag.");
             } else if (directive === "HOLD_FRAME") {
-                console.log(" 🟨 [Canvas] Stall signal. Holding frame execution thread.");
+                console.log(" 🟨 [Canvas Output] Stall signal. Holding frame execution thread.");
             }
             console.log("-----------------------------------------");
         }
         
-        try {
-            fs.unlinkSync("local_test_track.mp3");
-            console.log("[Engine Clean] Volatile cache file cleared from terminal memory.");
-        } catch (e) {}
+        console.log("[Engine Clean] Hardware synced evaluation completed successfully.");
     }
 };
 
-// Construct a highly robust absolute local file URL system path
-const absoluteFilePath = path.resolve("local_test_track.mp3");
-const safeLocalTestUrl = "file://" + absoluteFilePath;
-
-PlayerEngine.executeLocalUrlSequence(safeLocalTestUrl, "local_test_track.mp3");
+PlayerEngine.runNativePlaybackEngine();
