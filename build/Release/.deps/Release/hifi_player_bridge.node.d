@@ -1,0 +1,1 @@
+cmd_Release/hifi_player_bridge.node := ln -f "Release/obj.target/hifi_player_bridge.node" "Release/hifi_player_bridge.node" 2>/dev/null || (rm -rf "Release/hifi_player_bridge.node" && cp -af "Release/obj.target/hifi_player_bridge.node" "Release/hifi_player_bridge.node")

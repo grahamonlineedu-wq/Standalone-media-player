@@ -1,0 +1,1 @@
+cmd_Release/obj.target/hifi_player_bridge.node := aarch64-linux-android-clang++ -o Release/obj.target/hifi_player_bridge.node -shared -rdynamic  -Wl,-soname=hifi_player_bridge.node -Wl,--start-group Release/obj.target/hifi_player_bridge/src/bindings.o -Wl,--end-group -llog
