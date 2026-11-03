@@ -11,20 +11,22 @@ DEFS_Debug := \
 	'-D_FILE_OFFSET_BITS=64' \
 	'-D_LARGEFILE_SOURCE' \
 	'-D__STDC_FORMAT_MACROS' \
+	'-DOPENSSL_NO_PINSHARED' \
+	'-DOPENSSL_THREADS' \
 	'-DBUILDING_NODE_EXTENSION' \
-	'-D_GLIBCXX_USE_C99_MATH' \
 	'-DDEBUG' \
 	'-D_DEBUG'
 
 # Flags passed to all source files.
 CFLAGS_Debug := \
 	-fPIC \
+	-pthread \
 	-Wall \
 	-Wextra \
 	-Wno-unused-parameter \
+	-m64 \
 	-g \
-	-O0 \
-	-fPIC
+	-O0
 
 # Flags passed to only C files.
 CFLAGS_C_Debug :=
@@ -33,17 +35,16 @@ CFLAGS_C_Debug :=
 CFLAGS_CC_Debug := \
 	-fno-rtti \
 	-fno-exceptions \
-	-fno-strict-aliasing \
-	-std=gnu++20
+	-std=gnu++17
 
 INCS_Debug := \
-	-I/data/data/com.termux/files/usr/include/node \
-	-I/data/data/com.termux/files/usr/src \
-	-I/data/data/com.termux/files/usr/deps/openssl/config \
-	-I/data/data/com.termux/files/usr/deps/openssl/openssl/include \
-	-I/data/data/com.termux/files/usr/deps/uv/include \
-	-I/data/data/com.termux/files/usr/deps/zlib \
-	-I/data/data/com.termux/files/usr/deps/v8/include
+	-I/home/codespace/.cache/node-gyp/20.20.2/include/node \
+	-I/home/codespace/.cache/node-gyp/20.20.2/src \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/config \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/openssl/include \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/uv/include \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/zlib \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/v8/include
 
 DEFS_Release := \
 	'-DNODE_GYP_MODULE_NAME=hifi_player_bridge' \
@@ -54,15 +55,18 @@ DEFS_Release := \
 	'-D_FILE_OFFSET_BITS=64' \
 	'-D_LARGEFILE_SOURCE' \
 	'-D__STDC_FORMAT_MACROS' \
-	'-DBUILDING_NODE_EXTENSION' \
-	'-D_GLIBCXX_USE_C99_MATH'
+	'-DOPENSSL_NO_PINSHARED' \
+	'-DOPENSSL_THREADS' \
+	'-DBUILDING_NODE_EXTENSION'
 
 # Flags passed to all source files.
 CFLAGS_Release := \
 	-fPIC \
+	-pthread \
 	-Wall \
 	-Wextra \
 	-Wno-unused-parameter \
+	-m64 \
 	-O3 \
 	-fno-omit-frame-pointer
 
@@ -73,17 +77,16 @@ CFLAGS_C_Release :=
 CFLAGS_CC_Release := \
 	-fno-rtti \
 	-fno-exceptions \
-	-fno-strict-aliasing \
-	-std=gnu++20
+	-std=gnu++17
 
 INCS_Release := \
-	-I/data/data/com.termux/files/usr/include/node \
-	-I/data/data/com.termux/files/usr/src \
-	-I/data/data/com.termux/files/usr/deps/openssl/config \
-	-I/data/data/com.termux/files/usr/deps/openssl/openssl/include \
-	-I/data/data/com.termux/files/usr/deps/uv/include \
-	-I/data/data/com.termux/files/usr/deps/zlib \
-	-I/data/data/com.termux/files/usr/deps/v8/include
+	-I/home/codespace/.cache/node-gyp/20.20.2/include/node \
+	-I/home/codespace/.cache/node-gyp/20.20.2/src \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/config \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/openssl/include \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/uv/include \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/zlib \
+	-I/home/codespace/.cache/node-gyp/20.20.2/deps/v8/include
 
 OBJS := \
 	$(obj).target/$(TARGET)/src/bindings.o
@@ -113,14 +116,16 @@ $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cpp FORCE_DO_CMD
 # End of this set of suffix rules
 ### Rules for final target.
 LDFLAGS_Debug := \
+	-pthread \
 	-rdynamic \
-	-fPIC
+	-m64
 
 LDFLAGS_Release := \
-	-rdynamic
+	-pthread \
+	-rdynamic \
+	-m64
 
-LIBS := \
-	-llog
+LIBS :=
 
 $(obj).target/hifi_player_bridge.node: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
 $(obj).target/hifi_player_bridge.node: LIBS := $(LIBS)
