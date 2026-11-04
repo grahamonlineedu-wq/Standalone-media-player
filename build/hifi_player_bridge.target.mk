@@ -10,6 +10,7 @@ DEFS_Debug := \
 	'-D_GLIBCXX_USE_CXX11_ABI=1' \
 	'-D_FILE_OFFSET_BITS=64' \
 	'-D_LARGEFILE_SOURCE' \
+	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-D__STDC_FORMAT_MACROS' \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
@@ -35,16 +36,17 @@ CFLAGS_C_Debug :=
 CFLAGS_CC_Debug := \
 	-fno-rtti \
 	-fno-exceptions \
-	-std=gnu++17
+	-fno-strict-aliasing \
+	-std=gnu++20
 
 INCS_Debug := \
-	-I/home/codespace/.cache/node-gyp/20.20.2/include/node \
-	-I/home/codespace/.cache/node-gyp/20.20.2/src \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/config \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/openssl/include \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/uv/include \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/zlib \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/v8/include
+	-I/home/codespace/.cache/node-gyp/24.22.2/include/node \
+	-I/home/codespace/.cache/node-gyp/24.22.2/src \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/openssl/config \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/openssl/openssl/include \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/uv/include \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/zlib \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/v8/include
 
 DEFS_Release := \
 	'-DNODE_GYP_MODULE_NAME=hifi_player_bridge' \
@@ -54,6 +56,7 @@ DEFS_Release := \
 	'-D_GLIBCXX_USE_CXX11_ABI=1' \
 	'-D_FILE_OFFSET_BITS=64' \
 	'-D_LARGEFILE_SOURCE' \
+	'-DV8_ENABLE_WEBASSEMBLY' \
 	'-D__STDC_FORMAT_MACROS' \
 	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
@@ -77,16 +80,17 @@ CFLAGS_C_Release :=
 CFLAGS_CC_Release := \
 	-fno-rtti \
 	-fno-exceptions \
-	-std=gnu++17
+	-fno-strict-aliasing \
+	-std=gnu++20
 
 INCS_Release := \
-	-I/home/codespace/.cache/node-gyp/20.20.2/include/node \
-	-I/home/codespace/.cache/node-gyp/20.20.2/src \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/config \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/openssl/openssl/include \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/uv/include \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/zlib \
-	-I/home/codespace/.cache/node-gyp/20.20.2/deps/v8/include
+	-I/home/codespace/.cache/node-gyp/24.22.2/include/node \
+	-I/home/codespace/.cache/node-gyp/24.22.2/src \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/openssl/config \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/openssl/openssl/include \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/uv/include \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/zlib \
+	-I/home/codespace/.cache/node-gyp/24.22.2/deps/v8/include
 
 OBJS := \
 	$(obj).target/$(TARGET)/src/bindings.o
