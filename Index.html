@@ -1,0 +1,333 @@
+const HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Standalone Media Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+      background: #0f172a; 
+      color: #e2e8f0; 
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    
+    .header { text-align: center; padding: 20px 0; border-bottom: 1px solid #334155; }
+    .header h1 { font-size: 28px; margin-bottom: 8px; font-weight: 600; }
+    .status { font-size: 14px; color: #22c55e; }
+    .status.offline { color: #ef4444; }
+    
+    .tabs { display: flex; gap: 4px; margin: 20px 0; background: #1e293b; padding: 4px; border-radius: 12px; }
+    .tab { 
+      flex: 1; padding: 12px; background: transparent; border: none; 
+      color: #94a3b8; cursor: pointer; border-radius: 8px; font-size: 15px; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab.active { background: #3b82f6; color: white; }
+    .tab:hover:not(.active) { background: #334155; color: #e2e8f0; }
+    
+    .tab-content { display: none; animation: fadeIn 0.2s; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
+    .card h3 { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
+    
+    .player-controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin: 24px 0; }
+    .btn-circle { 
+      width: 52px; height: 52px; border-radius: 50%; border: none; 
+      background: #334155; color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-circle:hover { background: #475569; transform: scale(1.05); }
+    .btn-circle:active { transform: scale(0.95); }
+    .btn-circle.play { width: 64px; height: 64px; background: #3b82f6; }
+    .btn-circle.play:hover { background: #2563eb; }
+    
+    .btn-circle svg { width: 24px; height: 24px; fill: currentColor; }
+    .btn-circle.play svg { width: 28px; height: 28px; }
+    
+    .progress-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; margin: 16px 0; cursor: pointer; }
+    .progress { height: 100%; background: #3b82f6; border-radius: 3px; width: 0%; transition: width 0.1s linear; }
+    .time { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; }
+    
+    input, textarea { 
+      width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; 
+      border: 1px solid #334155; background: #0f172a; color: #e2e8f0; 
+      font-family: inherit; font-size: 15px; resize: vertical;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    
+    .btn { 
+      background: #3b82f6; color: white; border: none; padding: 12px 24px; 
+      border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; width: 100%;
+      transition: background 0.2s;
+    }
+    .btn:hover:not(:disabled) { background: #2563eb; }
+    .btn:disabled { background: #334155; cursor: not-allowed; opacity: 0.6; }
+    
+    #response { 
+      margin-top: 16px; padding: 16px; background: #0f172a; border-radius: 8px; 
+      white-space: pre-wrap; min-height: 60px; border: 1px solid #334155; font-size: 14px; line-height: 1.6;
+    }
+    
+    .playlist-item { 
+      padding: 14px 12px; background: #0f172a; border-radius: 8px; margin: 8px 0; 
+      cursor: pointer; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;
+      transition: all 0.2s;
+    }
+    .playlist-item:hover { border-color: #3b82f6; background: #1e293b; }
+    .playlist-item.active { background: #1e3a8a; border-color: #3b82f6; }
+    .track-info { flex: 1; }
+    .track-name { font-weight: 500; margin-bottom: 2px; }
+    .track-artist { font-size: 13px; color: #94a3b8; }
+    
+    audio { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Standalone Media Player</h1>
+      <div class="status" id="status">● Connecting...</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('player', this)">Player</button>
+      <button class="tab" onclick="switchTab('chat', this)">AI Chat</button>
+      <button class="tab" onclick="switchTab('settings', this)">Settings</button>
+    </div>
+
+    <div id="player" class="tab-content active">
+      <audio id="audioPlayer" preload="metadata"></audio>
+      <div class="card">
+        <h3>Now Playing</h3>
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="font-size: 18px; margin-bottom: 4px; font-weight: 500;" id="track-name">No track selected</div>
+          <div style="font-size: 14px; color: #94a3b8;" id="artist-name">Select from playlist below</div>
+        </div>
+        <div class="progress-bar" id="progressBar"><div class="progress" id="progress"></div></div>
+        <div class="time"><span id="current-time">0:00</span><span id="duration">0:00</span></div>
+        <div class="player-controls">
+          <button class="btn-circle" onclick="prevTrack()" aria-label="Previous">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button class="btn-circle play" id="playBtn" onclick="togglePlay()" aria-label="Play/Pause">
+            <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button class="btn-circle" onclick="nextTrack()" aria-label="Next">
+            <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Playlist</h3>
+        <div id="playlist"></div>
+      </div>
+    </div>
+
+    <div id="chat" class="tab-content">
+      <div class="card">
+        <h3>AI Assistant</h3>
+        <p style="color: #94a3b8; margin-bottom: 16px; font-size: 14px;">Ask for song recommendations, playlist ideas, or anything else</p>
+        <textarea id="prompt" rows="3" placeholder="Suggest a playlist for late night coding...">Suggest a lo-fi song for coding</textarea>
+        <button class="btn" id="sendBtn" onclick="askAI()">Send to AI</button>
+        <div id="response">AI responses will appear here...</div>
+      </div>
+    </div>
+
+    <div id="settings" class="tab-content">
+      <div class="card">
+        <h3>API Status</h3>
+        <div style="font-size: 14px; color: #94a3b8; line-height: 1.8;">
+          <div><strong>Endpoint:</strong> <span id="api-url" style="word-break: break-all;"></span></div>
+          <div><strong>OpenAI:</strong> <span id="openai-status">Checking...</span></div>
+          <div><strong>Version:</strong> 1.1.0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = window.location.origin;
+    const audio = document.getElementById('audioPlayer');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const progressBar = document.getElementById('progressBar');
+    
+    let isPlaying = false;
+    let currentTrackIndex = -1;
+    
+    // Royalty-free demo tracks from Pixabay. Replace with your own MP3 URLs.
+    const tracks = [
+      { name: 'Lo-fi Study Beat', artist: 'Pixabay Music', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3', duration: 140 },
+      { name: 'Coding Flow', artist: 'Pixabay Music', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3', duration: 150 },
+      { name: 'Deep Focus', artist: 'Pixabay Music', url: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_884fe5b557.mp3', duration: 218 },
+      { name: 'Chill Ambient', artist: 'Pixabay Music', url: 'https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe5b557.mp3', duration: 180 }
+    ];
+    
+    // Init
+    document.getElementById('api-url').textContent = API_URL;
+    renderPlaylist();
+    checkAPI();
+    
+    // Audio event listeners
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('loadedmetadata', () => {
+      document.getElementById('duration').textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener('ended', nextTrack);
+    audio.addEventListener('play', () => {
+      isPlaying = true;
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'block';
+    });
+    audio.addEventListener('pause', () => {
+      isPlaying = false;
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+    });
+    audio.addEventListener('error', () => {
+      alert('Error loading audio. Check the URL or try another track.');
+      isPlaying = false;
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+    });
+    
+    progressBar.addEventListener('click', seek);
+    
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById(tabName).classList.add('active');
+    }
+    
+    function renderPlaylist() {
+      const playlistDiv = document.getElementById('playlist');
+      playlistDiv.innerHTML = tracks.map((track, i) => \`
+        <div class="playlist-item" onclick="loadTrack(\${i})">
+          <div class="track-info">
+            <div class="track-name">\${track.name}</div>
+            <div class="track-artist">\${track.artist}</div>
+          </div>
+          <div style="color: #94a3b8; font-size: 13px;">\${formatTime(track.duration)}</div>
+        </div>
+      \`).join('');
+    }
+    
+    function loadTrack(index) {
+      if (index < 0 || index >= tracks.length) return;
+      currentTrackIndex = index;
+      const track = tracks[index];
+      audio.src = track.url;
+      audio.load();
+      document.getElementById('track-name').textContent = track.name;
+      document.getElementById('artist-name').textContent = track.artist;
+      document.querySelectorAll('.playlist-item').forEach((item, i) => {
+        item.classList.toggle('active', i === index);
+      });
+      audio.play().catch(e => console.log('Autoplay prevented:', e));
+    }
+    
+    function togglePlay() {
+      if (currentTrackIndex === -1) {
+        loadTrack(0);
+        return;
+      }
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        audio.play().catch(e => alert('Click play again to start audio'));
+      }
+    }
+    
+    function prevTrack() {
+      if (tracks.length === 0) return;
+      const newIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : tracks.length - 1;
+      loadTrack(newIndex);
+    }
+    
+    function nextTrack() {
+      if (tracks.length === 0) return;
+      const newIndex = currentTrackIndex < tracks.length - 1 ? currentTrackIndex + 1 : 0;
+      loadTrack(newIndex);
+    }
+    
+    function updateProgress() {
+      if (!audio.duration) return;
+      const percent = (audio.currentTime / audio.duration) * 100;
+      document.getElementById('progress').style.width = percent + '%';
+      document.getElementById('current-time').textContent = formatTime(audio.currentTime);
+    }
+    
+    function seek(e) {
+      if (!audio.duration) return;
+      const rect = progressBar.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      audio.currentTime = percent * audio.duration;
+    }
+    
+    function formatTime(s) {
+      if (isNaN(s) || s === null) return '0:00';
+      const mins = Math.floor(s / 60);
+      const secs = Math.floor(s % 60);
+      return mins + ':' + String(secs).padStart(2, '0');
+    }
+    
+    async function checkAPI() {
+      try {
+        const res = await fetch(API_URL + '/');
+        const data = await res.json();
+        document.getElementById('status').textContent = '● ' + data.message;
+        document.getElementById('status').classList.remove('offline');
+        document.getElementById('openai-status').textContent = 'Connected';
+        document.getElementById('openai-status').style.color = '#22c55e';
+      } catch (e) {
+        document.getElementById('status').textContent = '● Offline';
+        document.getElementById('status').classList.add('offline');
+        document.getElementById('openai-status').textContent = 'Error';
+        document.getElementById('openai-status').style.color = '#ef4444';
+      }
+    }
+    
+    async function askAI() {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) return;
+      const resDiv = document.getElementById('response');
+      const sendBtn = document.getElementById('sendBtn');
+      resDiv.textContent = 'Thinking...';
+      sendBtn.disabled = true;
+      
+      try {
+        const res = await fetch(API_URL + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const data = await res.json();
+        if (data.error) {
+          resDiv.textContent = 'Error: ' + data.error;
+        } else {
+          resDiv.textContent = data.choices?.[0]?.message?.content || 'No response received';
+        }
+      } catch (e) {
+        resDiv.textContent = 'Network error: ' + e.message;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>`;
+
